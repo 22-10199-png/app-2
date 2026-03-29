@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Soporte Técnico - Con Backend</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            font-family: system-ui, 'Segoe UI', Roboto, Arial, sans-serif;
+        }
+        body {
+            background: #f4f7fc;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1200px;
+            margin: auto;
+        }
+        h1, h2 {
+            color: #1e466e;
+        }
+        /* Login */
+        .login-container {
+            max-width: 400px;
+            margin: 80px auto;
+            background: white;
+            border-radius: 16px;
+            padding: 30px;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+        }
+        .login-container h2 {
+            text-align: center;
+            margin-top: 0;
+        }
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            margin-bottom: 20px;
+        }
+        label {
+            font-weight: 600;
+            color: #1e466e;
+        }
+        input, select, textarea {
+            padding: 10px 12px;
+            border: 1px solid #bdc3c7;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: 0.2s;
+        }
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: #2c7da0;
+            box-shadow: 0 0 0 2px rgba(44,125,160,0.2);
+        }
+        button {
+            background: #2c7da0;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            font-size: 1rem;
+            border-radius: 30px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background 0.2s;
+        }
+        button:hover {
+            background: #1f5e7a;
+        }
+        .logout-btn {
+            background: #a03d3d;
+            margin-bottom: 20px;
+        }
+        .logout-btn:hover {
+            background: #7a2e2e;
+        }
+        .form-section {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            padding: 20px 25px;
+            margin-bottom: 30px;
+        }
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+        }
+        .dynamic-fields {
+            background: #f9fbfd;
+            padding: 20px;
+            border-radius: 12px;
+            margin-top: 15px;
+            border-left: 4px solid #2c7da0;
+        }
+        .ticket-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+        .ticket-table th, .ticket-table td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        .ticket-table th {
+            background: #e9f0f5;
+            color: #1e466e;
+        }
+        .status-badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 30px;
+            font-size: 0.8rem;
+            font-weight: bold;
+            background: #e9ecef;
+        }
+        .status-abierto { background: #ffec99; color: #b76e00; }
+        .status-proceso { background: #cff4fc; color: #0c5e6e; }
+        .status-resuelto { background: #d1e7dd; color: #0f5132; }
+        .status-cerrado { background: #e2e3e5; color: #41464b; }
+        .actions button {
+            background: none;
+            border: none;
+            color: #2c7da0;
+            cursor: pointer;
+            padding: 4px 8px;
+            font-size: 0.85rem;
+        }
+        .actions button:hover {
+            text-decoration: underline;
+            background: none;
+        }
+        @media (max-width: 700px) {
+            .form-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+        .error-msg {
+            color: #d9534f;
+            font-size: 0.9rem;
+            margin-top: 10px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <!-- Contenedor de login (visible inicialmente) -->
+    <div id="loginContainer" class="login-container">
+        <h2>🔐 Acceso Técnicos</h2>
+        <form id="loginForm">
+            <div class="form-group">
+                <label>Usuario</label>
+                <input type="text" id="loginUser" required>
+            </div>
+            <div class="form-group">
+                <label>Contraseña</label>
+                <input type="password" id="loginPass" required>
+            </div>
+            <button type="submit">Iniciar sesión</button>
+            <div id="loginError" class="error-msg"></div>
+        </form>
+    </div>
+
+    <!-- Contenido principal (oculto hasta autenticación) -->
+    <div id="mainContent" style="display: none;">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+            <h1>📋 Registro de Soporte Técnico</h1>
+            <button id="logoutBtn" class="logout-btn">Cerrar sesión</button>
+        </div>
+
+        <!-- Formulario de tickets -->
+        <div class="form-section">
+            <h2>Nuevo ticket</h2>
+            <form id="ticketForm">
+                <!-- Sección Usuario -->
+                <h3>👤 Datos del usuario</h3>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>Nombre completo *</label>
+                        <input type="text" id="nombre" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Departamento</label>
+                        <input type="text" id="departamento">
+                    </div>
+                    <div class="form-group">
+                        <label>Teléfono</label>
+                        <input type="tel" id="telefono">
+                    </div>
+                </div>
+
+                <!-- Sección Equipo -->
+                <h3>🖥️ Datos del equipo</h3>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>Número de bien (N/B)</label>
+                        <input type="text" id="nb" placeholder="Ej: INV-1234">
+                    </div>
+                    <div class="form-group">
+                        <label>Tipo de equipo *</label>
+                        <select id="tipoEquipo" required>
+                            <option value="">-- Selecciona --</option>
+                            <option value="cpu">CPU / Computadora</option>
+                            <option value="impresora">Impresora</option>
+                            <option value="monitor">Monitor</option>
+                            <option value="scanner">Escáner</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Campos dinámicos según tipo de equipo -->
+                <div id="dynamicFields" class="dynamic-fields" style="display: none;"></div>
+
+                <!-- Falla reportada -->
+                <h3>⚠️ Falla reportada</h3>
+                <div class="form-group">
+                    <textarea id="falla" rows="3" placeholder="Describe el problema técnico..." required></textarea>
+                </div>
+
+                <div style="margin-top: 20px; text-align: right;">
+                    <button type="submit">➕ Crear ticket</button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Listado de tickets -->
+        <div class="form-section">
+            <h2>📌 Tickets registrados</h2>
+            <div style="overflow-x: auto;">
+                <table class="ticket-table" id="ticketsTable">
+                    <thead>
+                        <tr><th>ID</th><th>Usuario</th><th>Equipo</th><th>Falla</th><th>Estado</th><th>Acciones</th> </tr>
+                    </thead>
+                    <tbody id="ticketsBody"></tbody>
+                </table>
+            </div>
+            <div style="margin-top: 15px;">
+                <button id="clearStorage" style="background: #a03d3d;">🗑️ Eliminar todos los tickets</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // ---------- CONFIGURACIÓN ----------
+    // Cambia esta URL cuando despliegues el backend
+
+    //const API_URL = 'http://localhost:3000/tickets';
+    const API_URL = 'https://app-1-rq2a.onrender.com/tickets';
+
+    // ---------- AUTENTICACIÓN (frontend, igual que antes) ----------
+    const validCredentials = [
+        { user: "tecnico", pass: "soporte2026" },
+        { user: "admin", pass: "admin123" }
+    ];
+
+    function clearLoginForm() {
+        document.getElementById('loginForm').reset();
+        document.getElementById('loginError').innerText = '';
+    }
+
+    function checkAuth() {
+        const auth = sessionStorage.getItem('auth');
+        if (auth === 'true') {
+            document.getElementById('loginContainer').style.display = 'none';
+            document.getElementById('mainContent').style.display = 'block';
+            loadTickets();   // Cargar tickets desde el backend
+            return true;
+        } else {
+            document.getElementById('loginContainer').style.display = 'block';
+            document.getElementById('mainContent').style.display = 'none';
+            clearLoginForm();
+            return false;
+        }
+    }
+
+    function login(username, password) {
+    const valid = validCredentials.some(cred => cred.user === username && cred.pass === password);
+    if (valid) {
+        sessionStorage.setItem('auth', 'true');
+        sessionStorage.setItem('username', username); // Guardamos el nombre
+        checkAuth();
+    } else {
+        clearLoginForm();
+        document.getElementById('loginError').innerText = 'Usuario o contraseña incorrectos.';
+    }
+}
+
+    function logout() {
+    sessionStorage.removeItem('auth');
+    sessionStorage.removeItem('username');
+    checkAuth();
+}
+
+    document.getElementById('loginForm').addEventListener('submit', (e) => {
+        e.preventDefault();
+        const user = document.getElementById('loginUser').value.trim();
+        const pass = document.getElementById('loginPass').value.trim();
+        login(user, pass);
+    });
+    document.getElementById('logoutBtn').addEventListener('click', logout);
+
+    // ---------- GESTIÓN DE TICKETS (con backend) ----------
+    let tickets = [];   // almacena los tickets obtenidos del backend
+
+    // Cargar tickets desde el backend
+    async function loadTickets() {
+        try {
+            const response = await fetch(API_URL);
+            if (!response.ok) throw new Error(`HTTP error ${response.status}`);
+            const data = await response.json();
+            // Los campos "usuario" y "equipo" vienen como strings JSON del backend; los parseamos
+            tickets = data.map(ticket => ({
+                ...ticket,
+                usuario: typeof ticket.usuario === 'string' ? JSON.parse(ticket.usuario) : ticket.usuario,
+                equipo: typeof ticket.equipo === 'string' ? JSON.parse(ticket.equipo) : ticket.equipo
+            }));
+            renderTickets();
+        } catch (error) {
+            console.error('Error al cargar tickets:', error);
+            alert('No se pudo conectar con el servidor. Asegúrate de que el backend esté corriendo.');
+        }
+    }
+
+    // Renderizar la tabla
+    function renderTickets() {
+    const tbody = document.getElementById('ticketsBody');
+    if (!tbody) return;
+    tbody.innerHTML = '';
+    if (tickets.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;">No hay tickets registrados</td></tr>';
+        return;
+    }
+    tickets.forEach(ticket => {
+        const row = tbody.insertRow();
+
+        // ID
+        row.insertCell(0).textContent = ticket.id;
+
+        // Usuario
+        const userInfo = `${ticket.usuario.nombre}${ticket.usuario.departamento ? ' (' + ticket.usuario.departamento + ')' : ''}`;
+        row.insertCell(1).textContent = userInfo;
+
+        // Equipo
+        let equipoText = `${ticket.equipo.tipo.toUpperCase()}`;
+        if (ticket.equipo.nb) equipoText += ` (N/B: ${ticket.equipo.nb})`;
+        if (ticket.equipo.marca) equipoText += ` - ${ticket.equipo.marca}`;
+        row.insertCell(2).textContent = equipoText;
+
+        // Falla (resumida)
+        row.insertCell(3).textContent = ticket.falla.length > 60 ? ticket.falla.substring(0,57)+'...' : ticket.falla;
+
+        // Estado con badge
+        const estadoCell = row.insertCell(4);
+        const estadoSpan = document.createElement('span');
+        estadoSpan.className = `status-badge status-${ticket.estado.toLowerCase().replace(' ', '')}`;
+        estadoSpan.textContent = ticket.estado;
+        estadoCell.appendChild(estadoSpan);
+
+        // Acciones
+        const accionesCell = row.insertCell(5);
+        accionesCell.className = 'actions';
+
+        const btnEstado = document.createElement('button');
+        btnEstado.textContent = 'Cambiar estado';
+        btnEstado.onclick = () => cambiarEstado(ticket.id);
+        accionesCell.appendChild(btnEstado);
+
+        const isAdmin = sessionStorage.getItem('username') === 'admin';
+        if (isAdmin) {
+            const btnEliminar = document.createElement('button');
+            btnEliminar.textContent = 'Eliminar';
+            btnEliminar.style.color = '#d9534f';
+            btnEliminar.onclick = () => eliminarTicket(ticket.id);
+            accionesCell.appendChild(btnEliminar);
+        }
+
+        const btnVer = document.createElement('button');
+        btnVer.textContent = 'Ver detalle';
+        btnVer.onclick = () => verDetalle(ticket.id);
+        accionesCell.appendChild(btnVer);
+    });
+}
+
+    // Cambiar estado (llamada PUT al backend)
+    async function cambiarEstado(id) {
+    const ticket = tickets.find(t => t.id === id);
+    if (!ticket) return;
+    const estados = ['Abierto', 'En proceso', 'Resuelto', 'Cerrado'];
+    let idx = estados.indexOf(ticket.estado);
+    idx = (idx + 1) % estados.length;
+    const nuevoEstado = estados[idx];
+    try {
+        const response = await fetch(`${API_URL}/${id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ estado: nuevoEstado })
+        });
+        if (!response.ok) throw new Error('Error al actualizar estado');
+        await loadTickets();
+    } catch (error) {
+        console.error('Error al cambiar estado:', error);
+        alert('No se pudo cambiar el estado. Verifica la conexión con el servidor.');
+    }
+}
+
+    async function eliminarTicket(id) {
+    if (!confirm(`¿Estás seguro de eliminar el ticket #${id}? Esta acción no se puede deshacer.`)) {
+        return;
+    }
+    try {
+        const response = await fetch(`${API_URL}/${id}`, {
+            method: 'DELETE'
+        });
+        if (!response.ok) throw new Error('Error al eliminar');
+        alert(`Ticket #${id} eliminado correctamente.`);
+        await loadTickets();
+    } catch (error) {
+        console.error('Error al eliminar:', error);
+        alert('No se pudo eliminar el ticket.');
+    }
+}
+
+    // Ver detalle (usa los datos ya cargados en tickets)
+    function verDetalle(id) {
+        const ticket = tickets.find(t => t.id === id);
+        if (!ticket) return;
+        let detalle = `===== TICKET #${ticket.id} =====\n`;
+        detalle += `Usuario: ${ticket.usuario.nombre}\n`;
+        if (ticket.usuario.departamento) detalle += `Departamento: ${ticket.usuario.departamento}\n`;
+        if (ticket.usuario.telefono) detalle += `Teléfono: ${ticket.usuario.telefono}\n`;
+        detalle += `\n--- Equipo ---\n`;
+        detalle += `Tipo: ${ticket.equipo.tipo}\n`;
+        detalle += `Número de bien: ${ticket.equipo.nb || 'No especificado'}\n`;
+        if (ticket.equipo.tipo === 'cpu') {
+            detalle += `Marca: ${ticket.equipo.marca || '-'}\n`;
+            detalle += `Procesador: ${ticket.equipo.procesador || '-'}\n`;
+            detalle += `RAM: ${ticket.equipo.ram || '-'}\n`;
+            detalle += `Disco duro: ${ticket.equipo.disco || '-'}\n`;
+            detalle += `Sistema operativo: ${ticket.equipo.so || '-'}\n`;
+        } else if (ticket.equipo.tipo === 'impresora') {
+            detalle += `Marca: ${ticket.equipo.marca || '-'}\n`;
+            detalle += `Modelo: ${ticket.equipo.modelo || '-'}\n`;
+            detalle += `Conexión: ${ticket.equipo.conexion || '-'}\n`;
+        } else if (ticket.equipo.tipo === 'monitor') {
+            detalle += `Marca: ${ticket.equipo.marca || '-'}\n`;
+            detalle += `Modelo: ${ticket.equipo.modelo || '-'}\n`;
+            detalle += `Conexiones: ${ticket.equipo.conexiones || '-'}\n`;
+        } else if (ticket.equipo.tipo === 'scanner') {
+            detalle += `Marca: ${ticket.equipo.marca || '-'}\n`;
+            detalle += `Modelo: ${ticket.equipo.modelo || '-'}\n`;
+        }
+        detalle += `\n--- Falla reportada ---\n${ticket.falla}\n`;
+        detalle += `Estado actual: ${ticket.estado}\n`;
+        alert(detalle);
+    }
+
+    // ---- Campos dinámicos (sin cambios) ----
+    const tipoSelect = document.getElementById('tipoEquipo');
+    const dynamicDiv = document.getElementById('dynamicFields');
+
+    function actualizarCamposDinamicos() {
+        const tipo = tipoSelect.value;
+        if (!tipo) {
+            dynamicDiv.style.display = 'none';
+            return;
+        }
+        dynamicDiv.style.display = 'block';
+        let html = '';
+        if (tipo === 'cpu') {
+            html = `
+                <h4 style="margin-top:0;">⚙️ Características de la CPU</h4>
+                <div class="form-grid">
+                    <div class="form-group"><label>Marca</label><input type="text" id="cpuMarca"></div>
+                    <div class="form-group"><label>Procesador</label><input type="text" id="cpuProcesador"></div>
+                    <div class="form-group"><label>RAM</label><input type="text" id="cpuRam" placeholder="Ej: 8GB DDR4"></div>
+                    <div class="form-group"><label>Disco duro</label><input type="text" id="cpuDisco" placeholder="Ej: 512GB SSD"></div>
+                    <div class="form-group"><label>Sistema operativo</label><input type="text" id="cpuSO" placeholder="Ej: Windows 11"></div>
+                </div>
+            `;
+        } else if (tipo === 'impresora') {
+            html = `
+                <h4>🖨️ Datos de la impresora</h4>
+                <div class="form-grid">
+                    <div class="form-group"><label>Marca</label><input type="text" id="impMarca"></div>
+                    <div class="form-group"><label>Modelo</label><input type="text" id="impModelo"></div>
+                    <div class="form-group"><label>Conexión</label><select id="impConexion"><option>USB</option><option>Red (Ethernet)</option><option>WiFi</option><option>Bluetooth</option></select></div>
+                </div>
+            `;
+        } else if (tipo === 'monitor') {
+            html = `
+                <h4>🖥️ Datos del monitor</h4>
+                <div class="form-grid">
+                    <div class="form-group"><label>Marca</label><input type="text" id="monMarca"></div>
+                    <div class="form-group"><label>Modelo</label><input type="text" id="monModelo"></div>
+                    <div class="form-group"><label>Conexiones</label><input type="text" id="monConexiones" placeholder="Ej: HDMI, DisplayPort, VGA"></div>
+                </div>
+            `;
+        } else if (tipo === 'scanner') {
+            html = `
+                <h4>📠 Datos del escáner</h4>
+                <div class="form-grid">
+                    <div class="form-group"><label>Marca</label><input type="text" id="scanMarca"></div>
+                    <div class="form-group"><label>Modelo</label><input type="text" id="scanModelo"></div>
+                </div>
+            `;
+        }
+        dynamicDiv.innerHTML = html;
+    }
+
+    tipoSelect.addEventListener('change', actualizarCamposDinamicos);
+    actualizarCamposDinamicos();
+
+    function getEquipoData(tipo) {
+        const nb = document.getElementById('nb').value.trim();
+        const base = { nb, tipo };
+        if (tipo === 'cpu') {
+            base.marca = document.getElementById('cpuMarca')?.value || '';
+            base.procesador = document.getElementById('cpuProcesador')?.value || '';
+            base.ram = document.getElementById('cpuRam')?.value || '';
+            base.disco = document.getElementById('cpuDisco')?.value || '';
+            base.so = document.getElementById('cpuSO')?.value || '';
+        } else if (tipo === 'impresora') {
+            base.marca = document.getElementById('impMarca')?.value || '';
+            base.modelo = document.getElementById('impModelo')?.value || '';
+            base.conexion = document.getElementById('impConexion')?.value || '';
+        } else if (tipo === 'monitor') {
+            base.marca = document.getElementById('monMarca')?.value || '';
+            base.modelo = document.getElementById('monModelo')?.value || '';
+            base.conexiones = document.getElementById('monConexiones')?.value || '';
+        } else if (tipo === 'scanner') {
+            base.marca = document.getElementById('scanMarca')?.value || '';
+            base.modelo = document.getElementById('scanModelo')?.value || '';
+        }
+        return base;
+    }
+
+    function getUsuarioData() {
+        return {
+            nombre: document.getElementById('nombre').value.trim(),
+            departamento: document.getElementById('departamento').value.trim(),
+            telefono: document.getElementById('telefono').value.trim()
+        };
+    }
+
+    function validarFormulario() {
+        const nombre = document.getElementById('nombre').value.trim();
+        const tipo = tipoSelect.value;
+        const falla = document.getElementById('falla').value.trim();
+        if (!nombre) { alert('El nombre del usuario es obligatorio'); return false; }
+        if (!tipo) { alert('Debe seleccionar un tipo de equipo'); return false; }
+        if (!falla) { alert('Debe describir la falla reportada'); return false; }
+        return true;
+    }
+
+    // Crear ticket en el backend
+    async function crearTicket(event) {
+        event.preventDefault();
+        if (!validarFormulario()) return;
+
+        const usuario = getUsuarioData();
+        const tipo = tipoSelect.value;
+        const equipo = getEquipoData(tipo);
+        const falla = document.getElementById('falla').value.trim();
+
+        const nuevoTicket = {
+            usuario: usuario,
+            equipo: equipo,
+            falla: falla,
+            estado: 'Abierto'
+        };
+
+        try {
+            const response = await fetch(API_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(nuevoTicket)
+            });
+            if (!response.ok) throw new Error(`Error ${response.status}`);
+            const data = await response.json();
+            alert(`Ticket #${data.id} creado correctamente.`);
+            // Limpiar formulario
+            document.getElementById('ticketForm').reset();
+            dynamicDiv.style.display = 'none';
+            tipoSelect.value = '';
+            actualizarCamposDinamicos();
+            // Recargar lista
+            await loadTickets();
+        } catch (error) {
+            console.error('Error al crear ticket:', error);
+            alert('No se pudo crear el ticket. Verifica la conexión con el servidor.');
+        }
+    }
+
+    // Evento de borrar todos los tickets (todavía no implementado en backend)
+    document.getElementById('clearStorage').addEventListener('click', () => {
+        alert('Eliminar todos los tickets no está disponible aún. Puedes implementar esta función en el backend si lo deseas.');
+    });
+
+    document.getElementById('ticketForm').addEventListener('submit', crearTicket);
+
+    // Inicializar: verificar autenticación al cargar
+    checkAuth();
+</script>
+</body>
+</html>
